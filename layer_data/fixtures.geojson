@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": null,
+        "floor": null,
+        "type": null,
+        "subtype": null,
+        "panel": null,
+        "breaker": null,
+        "circuit_id": null,
+        "load_va": null,
+        "controlled_by": null,
+        "notes": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          0,
+          0
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": null,
+        "floor": null,
+        "type": "switch",
+        "subtype": null,
+        "circuit_id": null,
+        "controls": null,
+        "notes": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          0,
+          0
+        ]
+      }
+    }
+  ]
+}
