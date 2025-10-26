@@ -34,6 +34,18 @@ COL = {
     "run_default":  QColor("#9e9e9e")
 }
 
+def set_rule_else(rule):
+    """Mark a rule as ELSE across QGIS API variants."""
+    if hasattr(rule, 'setIsElse'):
+        rule.setIsElse(True)
+    elif hasattr(rule, 'setElse'):
+        rule.setElse(True)
+    else:
+        try:
+            rule.isElse = True  # best-effort fallback
+        except Exception:
+            pass
+
 def svg_path(filename):
     p = filename if os.path.isabs(filename) else os.path.join(ICON_DIR, filename)
     return p if os.path.exists(p) else None
@@ -99,6 +111,71 @@ def label_from_id(vlayer, size_pt=8):
     vlayer.setLabeling(QgsVectorLayerSimpleLabeling(pal))
     vlayer.setLabelsEnabled(True)
 
+def _set_point_over_placement(pal: QgsPalLayerSettings):
+    """
+    Make label placement 'over point' across QGIS API variants.
+    Tries multiple enums / properties, then gracefully does nothing if none fit.
+    """
+    # Newer builds: dedicated setter + PlacementOverPoint enum
+    if hasattr(pal, 'setPlacement') and hasattr(QgsPalLayerSettings, 'PlacementOverPoint'):
+        try:
+            pal.setPlacement(QgsPalLayerSettings.PlacementOverPoint)
+            return
+        except Exception:
+            pass
+
+    # Common: writable 'placement' attribute with various enum names
+    for enum_name in ("PlacementOverPoint", "OverPointPlacement", "PointPlacement", "OffsetFromPoint"):
+        if hasattr(QgsPalLayerSettings, enum_name):
+            try:
+                pal.placement = getattr(QgsPalLayerSettings, enum_name)
+                return
+            except Exception:
+                pass
+
+    # Older builds: separate predefinedPosition enum bucket
+    if hasattr(pal, "predefinedPosition") and hasattr(QgsPalLayerSettings, "OverPoint"):
+        try:
+            pal.predefinedPosition = QgsPalLayerSettings.OverPoint
+            return
+        except Exception:
+            pass
+
+    # Fallback: if OverPoint exists and placement is writable, try it
+    if hasattr(QgsPalLayerSettings, "OverPoint"):
+        try:
+            pal.placement = QgsPalLayerSettings.OverPoint
+            return
+        except Exception:
+            pass
+    # If none of the above worked, we leave the default placement.
+
+def label_from_expr(vlayer, expr: str, size_pt=8):
+    pal = QgsPalLayerSettings()
+
+    # Expression vs field name (handle API variants)
+    if hasattr(pal, 'setExpression'):
+        pal.setExpression(expr)
+    else:
+        pal.fieldName = expr
+        if hasattr(pal, 'isExpression'):
+            pal.isExpression = True
+
+    # Robust placement selection
+    _set_point_over_placement(pal)
+
+    # Text format + buffer
+    fmt = pal.format()
+    fmt.setSize(size_pt)
+    buf = fmt.buffer()
+    buf.setEnabled(True)
+    buf.setSize(1.0)
+    buf.setColor(QColor(255, 255, 255))
+    pal.setFormat(fmt)
+
+    vlayer.setLabeling(QgsVectorLayerSimpleLabeling(pal))
+    vlayer.setLabelsEnabled(True)
+
 def style_fixtures():
     v = L('fixtures')
     if not v: 
@@ -142,12 +219,20 @@ def style_fixtures():
              "lower(\"type\")='junction'",
              "junction", "electrical_junction_box.svg", svg_size_mm=5.0)
 
-    sym_def = badge_plus_svg(COL["default"], "electrical_light_bulb.svg")
-    rdef = QgsRuleBasedRenderer.Rule(sym_def); rdef.setLabel("Other / default"); rdef.setFilterExpression("TRUE")
+    # default (catch-all ELSE)
+    sym_def = badge_plus_svg(COL["default"], "electrical_outlet_unknown.svg")
+    rdef = QgsRuleBasedRenderer.Rule(sym_def)
+    rdef.setLabel("Other / default")
+    # no filter; mark as ELSE
+    try:
+        rdef.setFilterExpression("")  # harmless on newer builds
+    except Exception:
+        pass
+    set_rule_else(rdef)
     root.appendChild(rdef)
 
     v.setRenderer(QgsRuleBasedRenderer(root))
-    label_from_id(v)
+    label_from_expr(v, 'coalesce("circuit_id","id")')
     v.triggerRepaint()
     print("fixtures: styled (static colors).")
 
@@ -170,11 +255,17 @@ def style_switches():
         "electrical_switch_3way.svg")
 
     sym_def = badge_plus_svg(COL["switch"], "electrical_switch_spst.svg")
-    rdef = QgsRuleBasedRenderer.Rule(sym_def); rdef.setLabel("Other / default"); rdef.setFilterExpression("TRUE")
+    rdef = QgsRuleBasedRenderer.Rule(sym_def)
+    rdef.setLabel("Other / default")
+    try:
+        rdef.setFilterExpression("")
+    except Exception:
+        pass
+    set_rule_else(rdef)
     root.appendChild(rdef)
 
     v.setRenderer(QgsRuleBasedRenderer(root))
-    label_from_id(v)
+    label_from_expr(v, 'coalesce("circuit_id","id")')
     v.triggerRepaint()
     print("switches: styled (static colors).")
 
@@ -218,7 +309,12 @@ def style_runs():
         root.appendChild(r)
 
     rdef = QgsRuleBasedRenderer.Rule(make_line(COL["run_default"].name()))
-    rdef.setLabel("run: other"); rdef.setFilterExpression("TRUE")
+    rdef.setLabel("run: other")
+    try:
+        rdef.setFilterExpression("")
+    except Exception:
+        pass
+    set_rule_else(rdef)
     root.appendChild(rdef)
 
     v.setRenderer(QgsRuleBasedRenderer(root))
