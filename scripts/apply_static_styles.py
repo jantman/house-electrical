@@ -69,7 +69,7 @@ def badge_plus_svg(badge_color, svg_file, svg_size_mm=4.6, badge_size_mm=7.0):
         sym.appendSymbolLayer(svg)
     return sym
 
-def label_from_id(vlayer, size_pt=8):
+def label_from_id(vlayer, size_pt=16):
     pal = QgsPalLayerSettings()
     pal.fieldName = 'id'
 
@@ -150,7 +150,7 @@ def _set_point_over_placement(pal: QgsPalLayerSettings):
             pass
     # If none of the above worked, we leave the default placement.
 
-def label_from_expr(vlayer, expr: str, size_pt=8):
+def label_from_expr(vlayer, expr: str, size_pt=16):
     pal = QgsPalLayerSettings()
 
     # Expression vs field name (handle API variants)
