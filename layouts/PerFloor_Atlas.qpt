@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qgis printLayout="true" version="3">
+  <layout>
+    <pageCollection>
+      <page pageSize="279.4,431.8 mm" orientation="Portrait" dpi="300"/>
+    </pageCollection>
+    <layoutCustomProperties/>
+  </layout>
+  <items>
+    <!-- Title -->
+    <LayoutItem type="65639" id="title" positionOnPage="1" referencePoint="0" page="1">
+      <Label>
+        <text>Electrical Plan — [% @atlas_pagename %]</text>
+        <style alignment="Center" font="Noto Sans,20,-1,5,50,0,0,0,0,0"/>
+      </Label>
+      <LayoutObject position="69.69999999999999,8 mm" size="140,16 mm"/>
+    </LayoutItem>
+
+    <!-- Map -->
+    <LayoutItem type="65640" id="map" positionOnPage="1" referencePoint="0" page="1" uuid="map-1">
+      <Map>
+        <extent xmin="0" ymin="0" xmax="100" ymax="100"/>
+        <frame enabled="true" frameColor="0,0,0,255" frameSize="0.3"/>
+        <atlasDriven enabled="true"/>
+      </Map>
+      <LayoutObject position="10,28 mm" size="259.4,375.8 mm"/>
+    </LayoutItem>
+
+    <!-- Minimal Legend -->
+    <LayoutItem type="65641" id="legend" positionOnPage="1" referencePoint="0" page="1">
+      <Legend>
+        <title>Legend</title>
+        <map uuid="{map-1}"/>
+        <style titleAlignment="Left" columnCount="1"/>
+      </Legend>
+      <LayoutObject position="10,407.8 mm" size="90,12 mm"/>
+    </LayoutItem>
+
+    <!-- Footer (Git-aware) -->
+    <LayoutItem type="65639" id="footer" positionOnPage="1" referencePoint="0" page="1">
+      <Label>
+        <text>Generated [% format_date(now(),'yyyy-MM-dd HH:mm') %] from [% @git_repo_url %] as of [% @git_rev %][% @git_dirty_suffix %]</text>
+        <style alignment="Right" font="Noto Sans,10,-1,5,50,0,0,0,0,0"/>
+      </Label>
+      <LayoutObject position="129.39999999999998,419.8 mm" size="140,10 mm"/>
+    </LayoutItem>
+  </items>
+</qgis>
