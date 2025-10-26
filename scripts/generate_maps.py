@@ -113,22 +113,28 @@ def visible_group_extents(group_name: str):
                     if lyr and lyr.isValid():
                         e = lyr.extent()
                         if e and not e.isEmpty():
-                            extent = e if extent is None else extent.united(e)
+                            if extent is None:
+                                extent = QgsRectangle(e)
+                            else:
+                                extent.combineExtentWith(e)
     collect(g)
     return extent
 
 def vector_layers_extent():
-    extent = None
+    ext = None
     for lname in VECTOR_LAYERS:
         lst = proj.mapLayersByName(lname)
-        if not lst: 
+        if not lst:
             continue
         lyr = lst[0]
-        # respect any current subsetString; use provider extent
         e = lyr.extent()
-        if e and not e.isEmpty():
-            extent = e if extent is None else extent.united(e)
-    return extent
+        if not e or e.isEmpty():
+            continue
+        if ext is None:
+            ext = QgsRectangle(e)
+        else:
+            ext.combineExtentWith(e)   # <-- compatible union
+    return ext
 
 def best_extent_for_floor(group_name: str):
     """Prefer floor group graphics extent; union with filtered vectors for padding."""
