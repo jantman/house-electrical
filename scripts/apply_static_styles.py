@@ -321,15 +321,6 @@ def style_runs():
     v.triggerRepaint()
     print("runs: styled.")
 
-def style_rooms():
-    v = L('rooms')
-    if not v:
-        print("rooms layer not found"); return
-    sym = QgsFillSymbol.createSimple({'color':'255,255,255,0','outline_color':'140,140,140,255','outline_width':'0.4'})
-    v.setRenderer(QgsSingleSymbolRenderer(sym))
-    v.triggerRepaint()
-    print("rooms: styled.")
-
 # Circuit focus helpers
 TARGET_LAYERS = ["fixtures","switches","panels","runs"]
 def focus_circuit(circuit_id: str):
@@ -351,5 +342,4 @@ style_fixtures()
 style_switches()
 style_panels()
 style_runs()
-style_rooms()
 print("✅ Static styles applied. Use focus_circuit('YOUR-ID') / clear_circuit_focus().")

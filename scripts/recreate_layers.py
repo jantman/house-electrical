@@ -15,9 +15,8 @@ CRS = proj.crs() if proj.crs().isValid() else QgsCoordinateReferenceSystem("EPSG
 LAYERS = {
     "fixtures": ( "Point",      ["id","type","subtype","floor","circuit_id","panel","breaker","panel_label","notes"] ),
     "switches": ( "Point",      ["id","type","subtype","floor","circuit_id","notes"] ),
-    "panels":   ( "Point",      ["id","location","circuit_id","notes"] ),
+    "panels":   ( "Point",      ["id","location","circuit_id","notes","floor"] ),
     "runs":     ( "LineString", ["id","run_type","floor","circuit_id","notes"] ),
-    "rooms":    ( "Polygon",    ["id","floor","name"] ),
 }
 
 def mem_layer(geom: str, name: str, crs: QgsCoordinateReferenceSystem, fields: list) -> QgsVectorLayer:

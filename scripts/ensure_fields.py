@@ -50,6 +50,7 @@ ensure_fields('panels', [
     ('location', QVariant.String),
     ('circuit_id', QVariant.String),
     ('notes', QVariant.String),
+    ('floor', QVariant.String),
 ])
 
 ensure_fields('runs', [
@@ -58,12 +59,6 @@ ensure_fields('runs', [
     ('floor', QVariant.String),
     ('circuit_id', QVariant.String),
     ('notes', QVariant.String),
-])
-
-ensure_fields('rooms', [
-    ('id', QVariant.String),
-    ('floor', QVariant.String),
-    ('name', QVariant.String),
 ])
 
 print("Done.")
