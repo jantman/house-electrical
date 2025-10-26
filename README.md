@@ -17,3 +17,5 @@ Wiring diagrams for my house using [QGIS](https://qgis.org/). Currently using `3
 2. Layer → Add Layer → Add Vector Layer; add each of the `.geojson` files in [layer_data/](layer_data/).
 3. Save the project ([5737_lost_grove_electrical.qgs](./5737_lost_grove_electrical.qgs)).
 4. Plugins → Python Console; click "Show Editor" icon; open [scripts/setup_new_project.py](./scripts/setup_new_project.py) and run the script.
+5. For each floor of the house:
+   1. Add the DXF floorplan as a new Vector layer; in the resulting `Select Items to Add` dialog, be sure `Add layers to a group` is checked. If you can't see what was added, right click the group and select "Zoom to Group".

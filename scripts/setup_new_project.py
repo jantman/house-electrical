@@ -1,36 +1,39 @@
-# QGIS 3.44 — Apply symbology to layers: fixtures, switches, panels, runs, rooms
-# Usage:
-# 1) Open your baseline project that already has the five GeoJSON layers loaded by name.
-# 2) Plugins → Python Console → Show Editor → paste this whole script → press Run.
-
+# QGIS 3.44 — Apply styles (case-safe color by circuit_id, no red dots)
 from qgis.core import (
     QgsProject, QgsMarkerSymbol, QgsLineSymbol, QgsFillSymbol,
     QgsSvgMarkerSymbolLayer, QgsSimpleMarkerSymbolLayer, QgsSimpleLineSymbolLayer,
     QgsRuleBasedRenderer, QgsProperty, QgsVectorLayerSimpleLabeling, QgsPalLayerSettings,
-    QgsSingleSymbolRenderer
+    QgsSingleSymbolRenderer, QgsSymbolLayer
 )
 
 def get_layer(name):
     lst = QgsProject.instance().mapLayersByName(name)
     return lst[0] if lst else None
 
+# universal color expression (case-insensitive)
+COLOR_EXPR = (
+    "ramp_color('Spectral', "
+    "scale_linear(crc32(lower(coalesce(\"circuit_id\",''))), 0, 4294967295, 0, 1))"
+)
+
 def svg_symbol(svg_name: str, size_mm: float = 6.0, color_by_circuit: bool = True):
     sym = QgsMarkerSymbol()
-    sym.deleteSymbolLayer(0)
+    for i in range(sym.symbolLayerCount() - 1, -1, -1):
+        sym.deleteSymbolLayer(i)
     lyr = QgsSvgMarkerSymbolLayer(svg_name)
     lyr.setSize(size_mm)
     if color_by_circuit:
-        expr = "ramp_color('Spectral', scale_linear(crc32(coalesce(\"circuit_id\",'')), 0, 4294967295, 0, 1))"
         try:
-            lyr.setDataDefinedProperty(QgsSvgMarkerSymbolLayer.PropertyStrokeColor, QgsProperty.fromExpression(expr))
+            lyr.setDataDefinedProperty(QgsSvgMarkerSymbolLayer.PropertyStrokeColor, QgsProperty.fromExpression(COLOR_EXPR))
         except Exception:
-            lyr.setDataDefinedProperty(QgsSvgMarkerSymbolLayer.PropertyColor, QgsProperty.fromExpression(expr))
+            lyr.setDataDefinedProperty(QgsSvgMarkerSymbolLayer.PropertyColor, QgsProperty.fromExpression(COLOR_EXPR))
     sym.appendSymbolLayer(lyr)
     return sym
 
 def simple_circle(size_mm: float = 3.0):
     sym = QgsMarkerSymbol()
-    sym.deleteSymbolLayer(0)
+    for i in range(sym.symbolLayerCount() - 1, -1, -1):
+        sym.deleteSymbolLayer(i)
     lyr = QgsSimpleMarkerSymbolLayer()
     lyr.setSize(size_mm)
     lyr.setShape(QgsSimpleMarkerSymbolLayer.Circle)
@@ -39,10 +42,8 @@ def simple_circle(size_mm: float = 3.0):
 
 def make_rule(symbol, filt: str, label: str):
     r = QgsRuleBasedRenderer.Rule(symbol)
-    if filt:
-        r.setFilterExpression(filt)
-    if label:
-        r.setLabel(label)
+    if filt:  r.setFilterExpression(filt)
+    if label: r.setLabel(label)
     return r
 
 def label_id(layer):
@@ -50,6 +51,15 @@ def label_id(layer):
     pal.fieldName = 'id'
     layer.setLabeling(QgsVectorLayerSimpleLabeling(pal))
     layer.setLabelsEnabled(True)
+
+def _strip_simple_markers_from_rules(renderer: QgsRuleBasedRenderer):
+    root = renderer.rootRule()
+    for rule in root.children():
+        sym = rule.symbol()
+        if not sym: continue
+        for i in range(sym.symbolLayerCount() - 1, -1, -1):
+            if isinstance(sym.symbolLayer(i), QgsSimpleMarkerSymbolLayer):
+                sym.deleteSymbolLayer(i)
 
 def apply_fixtures():
     v = get_layer('fixtures')
@@ -91,29 +101,32 @@ def apply_fixtures():
          "Panel"),
     ]
     for svg, size, filt, label in rules:
-        sym = svg_symbol(svg, size, color_by_circuit=True)
-        root.appendChild(make_rule(sym, filt, label))
+        root.appendChild(make_rule(svg_symbol(svg, size, True), filt, label))
     root.appendChild(make_rule(simple_circle(), "TRUE", "Other / default"))
-    v.setRenderer(QgsRuleBasedRenderer(root))
+    ren = QgsRuleBasedRenderer(root)
+    _strip_simple_markers_from_rules(ren)
+    v.setRenderer(ren)
     label_id(v)
     v.triggerRepaint()
-    print('Applied fixtures symbology.')
+    print('Applied fixtures symbology (color by circuit_id, no red dots).')
 
 def apply_switches():
     v = get_layer('switches')
     if not v: return
     root = QgsRuleBasedRenderer.Rule(None)
-    root.appendChild(make_rule(svg_symbol("electrical_switch_spst.svg", 6.0, False),
+    root.appendChild(make_rule(svg_symbol("electrical_switch_spst.svg", 6.0, True),
         "(lower(\"type\")='switch' AND coalesce(lower(\"subtype\"),'') IN ('','spst')) OR lower(\"subtype\")='spst'",
         "Switch (SPST)"))
-    root.appendChild(make_rule(svg_symbol("electrical_switch_3way.svg", 6.0, False),
+    root.appendChild(make_rule(svg_symbol("electrical_switch_3way.svg", 6.0, True),
         "lower(\"subtype\") IN ('3way','3-way')",
         "Switch (3-way)"))
     root.appendChild(make_rule(simple_circle(), "TRUE", "Other / default"))
-    v.setRenderer(QgsRuleBasedRenderer(root))
+    ren = QgsRuleBasedRenderer(root)
+    _strip_simple_markers_from_rules(ren)
+    v.setRenderer(ren)
     label_id(v)
     v.triggerRepaint()
-    print('Applied switches symbology.')
+    print('Applied switches symbology (color by circuit_id).')
 
 def apply_panels():
     v = get_layer('panels')
@@ -125,24 +138,18 @@ def apply_panels():
 
 def apply_runs():
     v = get_layer('runs')
-    if not v: 
-        print('Layer "runs" not found; skipping.')
-        return
-
+    if not v: return
     sym = QgsLineSymbol()
-    sym.deleteSymbolLayer(0)
+    for i in range(sym.symbolLayerCount() - 1, -1, -1):
+        sym.deleteSymbolLayer(i)
     ls = QgsSimpleLineSymbolLayer()
     ls.setWidth(0.6)
     sym.appendSymbolLayer(ls)
-
-    expr = "ramp_color('Spectral', scale_linear(crc32(coalesce(\"circuit_id\",'')), 0, 4294967295, 0, 1))"
-    for lyr in sym.symbolLayers():
-        lyr.setDataDefinedProperty(QgsSymbolLayer.PropertyStrokeColor, QgsProperty.fromExpression(expr))
-
+    for sl in sym.symbolLayers():
+        sl.setDataDefinedProperty(QgsSymbolLayer.PropertyStrokeColor, QgsProperty.fromExpression(COLOR_EXPR))
     v.setRenderer(QgsSingleSymbolRenderer(sym))
     v.triggerRepaint()
-    print('Applied runs symbology.')
-
+    print('Applied runs symbology (color by circuit_id).')
 
 def apply_rooms():
     v = get_layer('rooms')
@@ -161,4 +168,4 @@ apply_switches()
 apply_panels()
 apply_runs()
 apply_rooms()
-print("Done. If icons don't appear, check Settings → Options → System → SVG Paths to ensure your icon folder is listed.")
+print("✅ Done — all symbols colorized by lowercase circuit_id using Spectral ramp.")
