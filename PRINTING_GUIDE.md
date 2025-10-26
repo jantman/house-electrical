@@ -13,7 +13,6 @@ This pack gives you two layout templates and a PyQGIS export script to produce c
 2) Open `scripts/generate_maps.py` → **Run**  
 3) PDFs will appear under `/home/jantman/GIT/house-electrical/exports` as:
    - `floor_basement.pdf`
-   - `garage.pdf`
    - `floor_1.pdf`
    - `floor_2.pdf`
 

@@ -3,6 +3,6 @@
 "name": "switches",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
 "features": [
-{ "type": "Feature", "properties": { "id": "GarageLightsSwitch", "type": "switch", "subtype": "spst", "floor": "1", "circuit_id": "24", "notes": "Garage light switch" }, "geometry": { "type": "Point", "coordinates": [ 7248.420400943397908, -8076.114681603770805 ] } }
+{ "type": "Feature", "properties": { "id": "GarageLightsSwitch", "type": "switch", "subtype": "spst", "floor": "1", "circuit_id": "24", "notes": "Garage light switch" }, "geometry": { "type": "Point", "coordinates": [ 5166.058667452832196, -10180.281249999998181 ] } }
 ]
 }

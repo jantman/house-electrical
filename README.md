@@ -15,6 +15,7 @@ See [SETUP.md](SETUP.md).
    - `id` (e.g., `P1`)
    - `location` (e.g., `Basement east wall`)
    - `circuit_id` (optional if you use circuits here)
+   - `floor` = `basement | 1 | 2`
    - `notes` (optional)
 4. Save edits (toggle editing off).
 
@@ -24,7 +25,7 @@ See [SETUP.md](SETUP.md).
    - `id` (e.g., `O1`)
    - `type` = `outlet | light | camera | junction | rj45`
    - `subtype` (for outlets: `duplex | gfci | quad | 14-50R`; for rj45: `1 | 2 | 4`)
-   - `floor` (e.g., `Basement`, `First`, `Second`)
+   - `floor` = `basement | 1 | 2`
    - `circuit_id` (e.g., `P1-14`)
    - `panel` (panel ID, optional)
    - `breaker` (optional)
@@ -37,7 +38,7 @@ See [SETUP.md](SETUP.md).
    - `id`
    - `type` = `switch`
    - `subtype` = `spst` or `3-way`
-   - `floor`
+   - `floor` = `basement | 1 | 2`
    - `circuit_id`
    - `notes`
 3. Save edits.
@@ -48,7 +49,7 @@ See [SETUP.md](SETUP.md).
 3. Attributes:
    - `id`
    - `run_type` = `power | data | security | av`
-   - `floor`
+   - `floor` = `basement | 1 | 2`
    - `circuit_id` (match the devices on that circuit for easy filtering)
    - `notes`
 4. Save edits.
