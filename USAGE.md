@@ -1,10 +1,6 @@
-# house-electrical
+# QGIS Electrical Project — Usage Guide
 
-Wiring diagrams for my house using [QGIS](https://qgis.org/). Currently using `3.44.2-Solothurn` release.
-
-## Initial Setup
-
-See [SETUP.md](SETUP.md).
+This guide covers day-to-day usage: adding features, wiring runs, and filtering to a specific circuit.
 
 ## 1) Adding features
 
@@ -93,3 +89,9 @@ Two options:
   - data: **Blue**
   - security: **Yellow**
   - av: **Light blue**
+
+---
+### Troubleshooting
+- **Icons appear as circles or ?** Add your icons folder under **Settings → Options → System → SVG Paths** and/or edit `ICON_DIR` inside `scripts/apply_static_styles.py`.
+- **Floorplan PNG warnings:** run `scripts/worldify_pngs.sh /path/to/floorplans` and add the PNGs again.
+- **Labels too dense:** zoom in or change label rendering in Layer Properties → Labels.
