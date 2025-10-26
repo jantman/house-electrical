@@ -59,10 +59,23 @@ def make_layout(title_text):
     layout = QgsPrintLayout(proj)
     layout.initializeDefaults()
 
-    width_mm, height_mm = 279.4, 431.8  # Tabloid portrait
+    # Tabloid portrait: 279.4 x 431.8 mm
+    width_mm, height_mm = 279.4, 431.8
     pc = layout.pageCollection()
     page = pc.page(0)
-    page.setPageSize(QSizeF(width_mm, height_mm), QgsUnitTypes.LayoutMillimeters)
+
+    # Page-size compatibility
+    try:
+        # Preferred: single-arg QgsLayoutSize
+        page.setPageSize(QgsLayoutSize(width_mm, height_mm, QgsUnitTypes.LayoutMillimeters))
+    except Exception:
+        # Fallback to named stock size + orientation
+        try:
+            from qgis.core import QgsLayoutItemPage
+            page.setPageSize("ANSI B", QgsLayoutItemPage.Portrait)  # 11x17 portrait
+        except Exception:
+            from qgis.core import QgsLayoutItemPage
+            page.setPageSize("A3", QgsLayoutItemPage.Portrait)
 
     # Title
     title = QgsLayoutItemLabel(layout)
@@ -76,7 +89,8 @@ def make_layout(title_text):
     # Map
     m = QgsLayoutItemMap(layout)
     m.setFrameEnabled(True)
-    m.setFrameStrokeWidth(0.3)
+    # >>> This is the key change: use QgsLayoutMeasurement for stroke width
+    m.setFrameStrokeWidth(QgsLayoutMeasurement(0.3, QgsUnitTypes.LayoutMillimeters))
     m.attemptMove(QgsLayoutPoint(10, 28, QgsUnitTypes.LayoutMillimeters))
     m.attemptResize(QgsLayoutSize(width_mm-20, height_mm-56, QgsUnitTypes.LayoutMillimeters))
     try:
@@ -93,10 +107,11 @@ def make_layout(title_text):
     leg.attemptMove(QgsLayoutPoint(10, height_mm-24, QgsUnitTypes.LayoutMillimeters))
     leg.attemptResize(QgsLayoutSize(90, 12, QgsUnitTypes.LayoutMillimeters))
 
-    # Footer (Git-aware, expression-based via layout template OR you can set text here)
-    # If using templates, the footer label pulls from @git_* variables we set above.
-    # If creating layouts programmatically, you can also set an explicit text:
+    # Footer (Git-aware text already set above via project vars; here we render fixed text)
     foot = QgsLayoutItemLabel(layout)
+    # You can keep your expression-driven footer in the QPT templates; in the programmatic layout we build text directly:
+    from qgis.core import QgsExpressionContextUtils
+    import datetime
     foot.setText("Generated {} from {} as of {}{}".format(
         datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
         "https://github.com/jantman/house-electrical",
