@@ -1,7 +1,0 @@
-{
-"type": "FeatureCollection",
-"name": "panels",
-"features": [
-{ "type": "Feature", "properties": { "id": "PanelG", "location": "Garage rear wall", "notes": "Garage subpanel" }, "geometry": { "type": "Point", "coordinates": [ 5210.168337264149159, -7596.908313679246021 ] } }
-]
-}
