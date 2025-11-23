@@ -203,6 +203,9 @@ def style_fixtures():
     add_rule("Light",
              "lower(\"type\")='light'",
              "light", "electrical_light_bulb.svg")
+    add_rule("Fan",
+             "lower(\"type\")='fan'",
+             "light", "electrical_fan.svg")
     add_rule("RJ45 (single)",
              "lower(\"type\")='rj45' AND lower(coalesce(\"subtype\",'')) IN ('1','single')",
              "data", "data_rj45_single.svg")
