@@ -1,28 +1,31 @@
 # generate_maps.py — Tabloid portrait per-floor exports with floor filters + git-aware footer
-# Usage: Plugins → Python Console → Show Editor → open & Run
 
 from qgis.core import (
     QgsProject, QgsPrintLayout, QgsLayoutItemMap, QgsLayoutItemLabel, QgsLayoutItemLegend,
     QgsLayoutSize, QgsLayoutPoint, QgsUnitTypes, QgsLayoutExporter, QgsLayoutMeasurement,
-    QgsLayerTreeGroup, QgsMapLayer, QgsRasterLayer
+    QgsLayerTreeGroup, QgsRectangle, QgsRasterLayer
 )
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import QSizeF, Qt
+from PyQt5.QtCore import Qt
 import os, datetime, subprocess
 
-# ---- Settings ----
-EXPORT_DIR    = "/home/jantman/GIT/house-electrical/exports"
-# Map Groups in your Layers panel -> floor attribute value to filter on
+# ============ SETTINGS ============
+EXPORT_DIR = "/home/jantman/GIT/house-electrical/exports"
+
+# Floor groups (Layers panel) -> floor attribute values (used in subset filters)
 FLOORS = {
     "floor_basement": "basement",
-    "floor_1": "1",
-    "floor_2": "2",
+    "floor_1":        "1",
+    "floor_2":        "2",
 }
-# Vector layers to include + filter by floor
-VECTOR_LAYERS = ["fixtures", "switches", "runs", "panels"]  # 'panels' will be skipped if it lacks a 'floor' field
-REPO        = "/home/jantman/GIT/house-electrical"
-GITHUB_URL  = "https://github.com/jantman/house-electrical"
-# ------------------
+
+# Vector layers to include & filter by floor (panels will be skipped if it lacks a 'floor' field)
+VECTOR_LAYERS = ["fixtures", "switches", "runs", "panels"]
+
+# Your repo path/URL (for footer variables)
+REPO       = "/home/jantman/GIT/house-electrical"
+GITHUB_URL = "https://github.com/jantman/house-electrical"
+# =================================
 
 proj = QgsProject.instance()
 root = proj.layerTreeRoot()
@@ -30,11 +33,13 @@ os.makedirs(EXPORT_DIR, exist_ok=True)
 
 # --- Git-aware footer variables ---
 from qgis.core import QgsExpressionContextUtils
+
 def _git_sha(repo):
     try:
         return subprocess.check_output(["git","-C",repo,"rev-parse","--short","HEAD"]).decode().strip()
     except Exception:
         return "unknown"
+
 def _git_dirty(repo):
     try:
         return " +dirty" if subprocess.check_output(["git","-C",repo,"status","--porcelain"]).strip() else ""
@@ -45,6 +50,7 @@ QgsExpressionContextUtils.setProjectVariable(proj, "git_rev", _git_sha(REPO))
 QgsExpressionContextUtils.setProjectVariable(proj, "git_dirty_suffix", _git_dirty(REPO))
 QgsExpressionContextUtils.setProjectVariable(proj, "git_repo_url", GITHUB_URL)
 
+# -------- helpers --------
 def find_group(name: str) -> QgsLayerTreeGroup:
     for child in root.children():
         if isinstance(child, QgsLayerTreeGroup) and child.name() == name:
@@ -53,7 +59,8 @@ def find_group(name: str) -> QgsLayerTreeGroup:
 
 def layer_has_field(layer_name: str, field: str) -> bool:
     lst = proj.mapLayersByName(layer_name)
-    if not lst: return False
+    if not lst:
+        return False
     return lst[0].fields().indexFromName(field) != -1
 
 def set_only_group_visible(group_name: str):
@@ -61,11 +68,11 @@ def set_only_group_visible(group_name: str):
     for child in root.children():
         if isinstance(child, QgsLayerTreeGroup):
             child.setItemVisibilityChecked(False)
-    # Turn on requested
+    # Turn on requested floor group
     g = find_group(group_name)
     if g:
         g.setItemVisibilityChecked(True)
-    # Ensure our vector layers are visible
+    # Ensure key vector layers are visible
     for lname in VECTOR_LAYERS:
         for lyr in proj.mapLayersByName(lname):
             node = root.findLayer(lyr.id())
@@ -73,54 +80,70 @@ def set_only_group_visible(group_name: str):
                 node.setItemVisibilityChecked(True)
 
 def apply_floor_filters(floor_val: str):
-    """Temporarily filter vector layers by floor = floor_val (if the layer has a 'floor' field)."""
+    """Temporarily filter vector layers by floor if field exists; leave unfiltered otherwise."""
     for lname in VECTOR_LAYERS:
-        layers = proj.mapLayersByName(lname)
-        if not layers: 
+        lst = proj.mapLayersByName(lname)
+        if not lst: 
             print(f"⚠ layer not found: {lname}")
             continue
-        lyr = layers[0]
+        lyr = lst[0]
         if layer_has_field(lname, "floor"):
             lyr.setSubsetString(f"\"floor\" = '{floor_val}'")
         else:
-            # leave unfiltered (e.g., panels if no floor column yet)
             lyr.setSubsetString("")
             if lname == "panels":
-                print("⚠ panels has no 'floor' field; showing all panels on all floors (add a 'floor' field to filter).")
+                print("ℹ 'panels' has no 'floor' field; showing all panels on all floors.")
 
 def clear_floor_filters():
     for lname in VECTOR_LAYERS:
         for lyr in proj.mapLayersByName(lname):
             lyr.setSubsetString("")
 
-def visible_group_extents(group_name: str):
-    """Union extent of all visible layers inside the given group."""
+def group_extent_any_visibility(group_name: str):
+    """
+    Union extent of ALL layers inside the given group (ignores visibility).
+    Prefer rasters so empty floors still get a valid extent.
+    """
     g = find_group(group_name)
     if not g:
         return None
-    extent = None
-    # collect ids of layers under group that are visible
-    def collect(group):
-        nonlocal extent
-        for child in group.children():
+
+    ras_ext = None
+    vec_ext = None
+
+    def collect(grp: QgsLayerTreeGroup):
+        nonlocal ras_ext, vec_ext
+        for child in grp.children():
             if isinstance(child, QgsLayerTreeGroup):
-                if child.isVisible():
-                    collect(child)
+                collect(child)
             else:
                 node = child
-                if node.isVisible():
-                    lyr = node.layer()
-                    if lyr and lyr.isValid():
-                        e = lyr.extent()
-                        if e and not e.isEmpty():
-                            if extent is None:
-                                extent = QgsRectangle(e)
-                            else:
-                                extent.combineExtentWith(e)
+                lyr = node.layer()
+                if not lyr or not lyr.isValid():
+                    continue
+                e = lyr.extent()
+                if not e or e.isEmpty():
+                    continue
+                if isinstance(lyr, QgsRasterLayer):
+                    if ras_ext is None:
+                        ras_ext = QgsRectangle(e)
+                    else:
+                        ras_ext.combineExtentWith(e)
+                else:
+                    if vec_ext is None:
+                        vec_ext = QgsRectangle(e)
+                    else:
+                        vec_ext.combineExtentWith(e)
+
     collect(g)
-    return extent
+
+    if ras_ext and vec_ext:
+        ras_ext.combineExtentWith(vec_ext)
+        return ras_ext
+    return ras_ext or vec_ext  # may be None if no layers at all
 
 def vector_layers_extent():
+    """Union extent of our filtered vector layers (fixtures/switches/runs/panels)."""
     ext = None
     for lname in VECTOR_LAYERS:
         lst = proj.mapLayersByName(lname)
@@ -133,18 +156,19 @@ def vector_layers_extent():
         if ext is None:
             ext = QgsRectangle(e)
         else:
-            ext.combineExtentWith(e)   # <-- compatible union
+            ext.combineExtentWith(e)
     return ext
 
 def best_extent_for_floor(group_name: str):
-    """Prefer floor group graphics extent; union with filtered vectors for padding."""
-    eg = visible_group_extents(group_name)
+    """Prefer the floor group's raster extent; union with filtered vectors if present."""
+    eg = group_extent_any_visibility(group_name)
     ev = vector_layers_extent()
     if eg and ev:
-        return eg.united(ev)
+        eg.combineExtentWith(ev)
+        return eg
     return eg or ev
 
-# ----- layout builder -----
+# -------- layout builder --------
 def make_layout(title_text):
     layout = QgsPrintLayout(proj)
     layout.initializeDefaults()
@@ -153,7 +177,7 @@ def make_layout(title_text):
     width_mm, height_mm = 279.4, 431.8
     pc = layout.pageCollection()
     page = pc.page(0)
-    # Page-size compatibility
+    # Page-size compatibility: prefer single-arg QgsLayoutSize; fallback to named preset
     try:
         page.setPageSize(QgsLayoutSize(width_mm, height_mm, QgsUnitTypes.LayoutMillimeters))
     except Exception:
@@ -177,12 +201,12 @@ def make_layout(title_text):
     m = QgsLayoutItemMap(layout)
     m.setFrameEnabled(True)
     m.setFrameStrokeWidth(QgsLayoutMeasurement(0.3, QgsUnitTypes.LayoutMillimeters))
-    # Slightly larger map area than before
+    # Slightly larger map area
     m.attemptMove(QgsLayoutPoint(8, 26, QgsUnitTypes.LayoutMillimeters))
     m.attemptResize(QgsLayoutSize(width_mm-16, height_mm-52, QgsUnitTypes.LayoutMillimeters))
     layout.addLayoutItem(m)
 
-    # Legend (minimal, placed higher to avoid clipping)
+    # Legend (minimal, higher position to avoid clipping)
     leg = QgsLayoutItemLegend(layout)
     leg.setTitle("Legend")
     leg.setLinkedMap(m)
@@ -194,8 +218,7 @@ def make_layout(title_text):
     leg.attemptMove(QgsLayoutPoint(8, height_mm-36, QgsUnitTypes.LayoutMillimeters))
     leg.attemptResize(QgsLayoutSize(100, 24, QgsUnitTypes.LayoutMillimeters))
 
-    # Footer (git-aware, narrower font and wider box so it stays on-page)
-    from qgis.core import QgsExpressionContextUtils
+    # Footer (Git-aware, narrow font and wide box so it stays on-page)
     foot = QgsLayoutItemLabel(layout)
     foot.setText("Generated {} from {} as of {}{}".format(
         datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -204,7 +227,6 @@ def make_layout(title_text):
         QgsExpressionContextUtils.projectScope(proj).variable("git_dirty_suffix"),
     ))
     foot.setFont(QFont("Noto Sans", 9))
-    # Wider label box near the right margin
     foot.attemptMove(QgsLayoutPoint(width_mm-170, height_mm-12, QgsUnitTypes.LayoutMillimeters))
     foot.attemptResize(QgsLayoutSize(160, 10, QgsUnitTypes.LayoutMillimeters))
     foot.setHAlign(Qt.AlignRight)
@@ -220,22 +242,22 @@ def export_pdf(layout, out_path):
         raise RuntimeError(f"Export failed: {out_path}")
     print("✔ Exported", out_path)
 
-# ----- main pass -----
+# -------- main export loop --------
 for group_name, floor_val in FLOORS.items():
     print(f"\n=== Exporting {group_name} (floor={floor_val}) ===")
     set_only_group_visible(group_name)
     apply_floor_filters(floor_val)
 
     layout, map_item = make_layout(f"Electrical Plan — {group_name}")
-    # Zoom to union of visible group (rasters) + filtered vectors
+
+    # Zoom to union of the group's rasters + filtered vectors (works even if no features yet)
     ext = best_extent_for_floor(group_name)
     if ext and not ext.isEmpty():
-        # Add ~2.5% padding so nothing kisses the frame
-        pad = max(ext.width(), ext.height()) * 0.025
+        pad = max(ext.width(), ext.height()) * 0.025  # ~2.5% padding
         try:
-            ext.grow(pad, pad)  # some builds support (x, y)
+            ext.grow(pad)  # single-arg grow for compatibility
         except Exception:
-            ext.grow(pad)       # fallback: single uniform padding
+            pass
         map_item.setExtent(ext)
 
     out = os.path.join(EXPORT_DIR, f"{group_name}.pdf")
@@ -244,4 +266,4 @@ for group_name, floor_val in FLOORS.items():
     clear_floor_filters()
 
 print("\n✅ Per-floor exports complete.")
-print("Tip: add a 'floor' text field to 'panels' and populate it so panels filter per floor too.")
+print("Tip: if 'panels' lacks a 'floor' field, add one so panels filter per floor too.")
