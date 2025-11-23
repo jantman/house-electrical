@@ -186,25 +186,13 @@ def make_layout(title_text):
     title.setHAlign(Qt.AlignHCenter)
     layout.addLayoutItem(title)
 
-    # Map
+    # Map - now takes more space since no legend
     m = QgsLayoutItemMap(layout)
     m.setFrameEnabled(True)
     m.setFrameStrokeWidth(QgsLayoutMeasurement(0.3, QgsUnitTypes.LayoutMillimeters))
     m.attemptMove(QgsLayoutPoint(8, 26, QgsUnitTypes.LayoutMillimeters))
-    m.attemptResize(QgsLayoutSize(width_mm-16, height_mm-52, QgsUnitTypes.LayoutMillimeters))
+    m.attemptResize(QgsLayoutSize(width_mm-16, height_mm-46, QgsUnitTypes.LayoutMillimeters))
     layout.addLayoutItem(m)
-
-    # Legend (minimal)
-    leg = QgsLayoutItemLegend(layout)
-    leg.setTitle("Legend")
-    leg.setLinkedMap(m)
-    try:
-        leg.setResizeToContents(True)
-    except Exception:
-        pass
-    layout.addLayoutItem(leg)
-    leg.attemptMove(QgsLayoutPoint(8, height_mm-36, QgsUnitTypes.LayoutMillimeters))
-    leg.attemptResize(QgsLayoutSize(100, 24, QgsUnitTypes.LayoutMillimeters))
 
     # Footer (Git-aware)
     foot = QgsLayoutItemLabel(layout)
@@ -271,6 +259,63 @@ def adjust_extent_to_aspect_ratio(extent, target_width_mm, target_height_mm, sca
     
     return new_extent
 
+def make_legend_layout():
+    """Create a layout with just the legend for all layers."""
+    layout = QgsPrintLayout(proj)
+    layout.initializeDefaults()
+
+    # Tabloid portrait: 279.4 x 431.8 mm
+    width_mm, height_mm = 279.4, 431.8
+    pc = layout.pageCollection()
+    page = pc.page(0)
+    try:
+        page.setPageSize(QgsLayoutSize(width_mm, height_mm, QgsUnitTypes.LayoutMillimeters))
+    except Exception:
+        try:
+            from qgis.core import QgsLayoutItemPage
+            page.setPageSize("ANSI B", QgsLayoutItemPage.Portrait)
+        except Exception:
+            from qgis.core import QgsLayoutItemPage
+            page.setPageSize("A3", QgsLayoutItemPage.Portrait)
+
+    # Title
+    title = QgsLayoutItemLabel(layout)
+    title.setText("Electrical Plan — Legend")
+    title.setFont(QFont("Noto Sans", 20))
+    title.adjustSizeToText()
+    title.attemptMove(QgsLayoutPoint(width_mm/2 - 70, 8, QgsUnitTypes.LayoutMillimeters))
+    title.setHAlign(Qt.AlignHCenter)
+    layout.addLayoutItem(title)
+
+    # Legend - large and centered
+    leg = QgsLayoutItemLegend(layout)
+    leg.setTitle("Legend")
+    try:
+        leg.setResizeToContents(True)
+    except Exception:
+        pass
+    layout.addLayoutItem(leg)
+    leg.attemptMove(QgsLayoutPoint(20, 40, QgsUnitTypes.LayoutMillimeters))
+    # Let legend size itself, but set a max width
+    leg.attemptResize(QgsLayoutSize(width_mm-40, height_mm-80, QgsUnitTypes.LayoutMillimeters))
+
+    # Footer (Git-aware)
+    foot = QgsLayoutItemLabel(layout)
+    foot.setText("Generated {} from {} as of {}{}".format(
+        datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+        GITHUB_URL,
+        QgsExpressionContextUtils.projectScope(proj).variable("git_rev"),
+        QgsExpressionContextUtils.projectScope(proj).variable("git_dirty_suffix"),
+    ))
+    foot.setFont(QFont("Noto Sans", 9))
+    foot.attemptMove(QgsLayoutPoint(width_mm-170, height_mm-12, QgsUnitTypes.LayoutMillimeters))
+    foot.attemptResize(QgsLayoutSize(160, 10, QgsUnitTypes.LayoutMillimeters))
+    foot.setHAlign(Qt.AlignRight)
+    layout.addLayoutItem(foot)
+
+    layout.refresh()
+    return layout
+
 def export_pdf(layout, out_path):
     ex = QgsLayoutExporter(layout)
     res = ex.exportToPdf(out_path, QgsLayoutExporter.PdfExportSettings())
@@ -318,3 +363,22 @@ for floor_key, floor_val in FLOORS.items():
     clear_floor_filters()
 
 print("\n✅ Per-floor exports complete.")
+
+# -------- Export legend page --------
+
+print("\n=== Exporting legend page ===")
+# Make all layers visible for the legend
+for child in root.children():
+    if isinstance(child, QgsLayerTreeGroup):
+        child.setItemVisibilityChecked(True)
+for lname in VECTOR_LAYERS:
+    for lyr in proj.mapLayersByName(lname):
+        node = root.findLayer(lyr.id())
+        if node:
+            node.setItemVisibilityChecked(True)
+
+legend_layout = make_legend_layout()
+legend_out = os.path.join(EXPORT_DIR, "legend.pdf")
+export_pdf(legend_layout, legend_out)
+
+print("\n✅ All exports complete.")
