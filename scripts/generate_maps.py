@@ -206,6 +206,43 @@ def make_layout(title_text):
     layout.refresh()
     return layout, m
 
+def adjust_extent_to_aspect_ratio(extent, target_width_mm, target_height_mm):
+    """
+    Adjust the extent to match the aspect ratio of the map frame,
+    ensuring the entire extent fits within the frame without cropping.
+    """
+    # Calculate aspect ratios
+    extent_width = extent.width()
+    extent_height = extent.height()
+    extent_aspect = extent_width / extent_height if extent_height > 0 else 1
+    frame_aspect = target_width_mm / target_height_mm if target_height_mm > 0 else 1
+    
+    # Adjust extent to match frame aspect ratio
+    # If extent is taller (relative to its width) than the frame, expand width
+    # If extent is wider (relative to its height) than the frame, expand height
+    if extent_aspect < frame_aspect:
+        # Extent is taller than frame - need to expand width
+        new_width = extent_height * frame_aspect
+        width_diff = new_width - extent_width
+        new_extent = QgsRectangle(
+            extent.xMinimum() - width_diff / 2,
+            extent.yMinimum(),
+            extent.xMaximum() + width_diff / 2,
+            extent.yMaximum()
+        )
+    else:
+        # Extent is wider than frame - need to expand height
+        new_height = extent_width / frame_aspect
+        height_diff = new_height - extent_height
+        new_extent = QgsRectangle(
+            extent.xMinimum(),
+            extent.yMinimum() - height_diff / 2,
+            extent.xMaximum(),
+            extent.yMaximum() + height_diff / 2
+        )
+    
+    return new_extent
+
 def export_pdf(layout, out_path):
     ex = QgsLayoutExporter(layout)
     res = ex.exportToPdf(out_path, QgsLayoutExporter.PdfExportSettings())
@@ -224,10 +261,20 @@ for floor_key, floor_val in FLOORS.items():
 
     ext = raster_extent_for_floor_key(floor_key)
     if ext and not ext.isEmpty():
-        map_item.setExtent(ext)
+        # Get the map item dimensions
+        map_width_mm = map_item.sizeWithUnits().width()
+        map_height_mm = map_item.sizeWithUnits().height()
+        
+        # Adjust extent to match the map frame's aspect ratio
+        adjusted_ext = adjust_extent_to_aspect_ratio(ext, map_width_mm, map_height_mm)
+        map_item.setExtent(adjusted_ext)
         print(
-            f"   raster extent: xmin={ext.xMinimum():.2f}, "
+            f"   original extent: xmin={ext.xMinimum():.2f}, "
             f"ymin={ext.yMinimum():.2f}, xmax={ext.xMaximum():.2f}, ymax={ext.yMaximum():.2f}"
+        )
+        print(
+            f"   adjusted extent: xmin={adjusted_ext.xMinimum():.2f}, "
+            f"ymin={adjusted_ext.yMinimum():.2f}, xmax={adjusted_ext.xMaximum():.2f}, ymax={adjusted_ext.yMaximum():.2f}"
         )
     else:
         print("   ⚠ No valid raster extent; map may be blank.")
