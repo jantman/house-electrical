@@ -26,6 +26,23 @@ FLOORS = {
     "floor_2":        "2",
 }
 
+# Scale factors for each floor (optional - use to zoom in/out on specific floors)
+# 1.0 = default fit, >1.0 = zoom in (larger), <1.0 = zoom out (smaller)
+FLOOR_SCALE_FACTORS = {
+    "floor_basement": 1.1,  # Make basement ~30% larger to reduce empty margins
+    "floor_1":        1.0,
+    "floor_2":        1.0,
+}
+
+# Manual center point offsets for floors (optional - use when floorplan content
+# isn't centered in the raster). Format: (x_offset, y_offset) in raster units.
+# Positive Y moves the view UP (shows lower part of image), negative Y moves DOWN (shows upper part).
+FLOOR_CENTER_OFFSETS = {
+    "floor_basement": (0, 1100),  # Shift view down to show top of basement
+    "floor_1":        (0, 0),
+    "floor_2":        (0, 0),
+}
+
 # Raster layer names for each floor. Make sure these match the layer NAMES in QGIS.
 # If your layers are named differently, change the values here.
 RASTER_LAYERS = {
@@ -206,40 +223,51 @@ def make_layout(title_text):
     layout.refresh()
     return layout, m
 
-def adjust_extent_to_aspect_ratio(extent, target_width_mm, target_height_mm):
+def adjust_extent_to_aspect_ratio(extent, target_width_mm, target_height_mm, scale_factor=1.0, center_offset=(0, 0)):
     """
     Adjust the extent to match the aspect ratio of the map frame,
     ensuring the entire extent fits within the frame without cropping.
+    
+    Args:
+        extent: The original extent from the raster layer
+        target_width_mm: Width of the map frame in mm
+        target_height_mm: Height of the map frame in mm
+        scale_factor: Zoom factor (1.0 = default fit, >1.0 = zoom in, <1.0 = zoom out)
+        center_offset: (x_offset, y_offset) tuple to shift the center point
     """
+    # Get the center of the original extent and apply offset
+    center_x = extent.center().x() + center_offset[0]
+    center_y = extent.center().y() + center_offset[1]
+    
     # Calculate aspect ratios
     extent_width = extent.width()
     extent_height = extent.height()
     extent_aspect = extent_width / extent_height if extent_height > 0 else 1
     frame_aspect = target_width_mm / target_height_mm if target_height_mm > 0 else 1
     
-    # Adjust extent to match frame aspect ratio
+    # Adjust extent to match frame aspect ratio, centered on the original center
     # If extent is taller (relative to its width) than the frame, expand width
     # If extent is wider (relative to its height) than the frame, expand height
     if extent_aspect < frame_aspect:
         # Extent is taller than frame - need to expand width
         new_width = extent_height * frame_aspect
-        width_diff = new_width - extent_width
-        new_extent = QgsRectangle(
-            extent.xMinimum() - width_diff / 2,
-            extent.yMinimum(),
-            extent.xMaximum() + width_diff / 2,
-            extent.yMaximum()
-        )
+        new_height = extent_height
     else:
         # Extent is wider than frame - need to expand height
+        new_width = extent_width
         new_height = extent_width / frame_aspect
-        height_diff = new_height - extent_height
-        new_extent = QgsRectangle(
-            extent.xMinimum(),
-            extent.yMinimum() - height_diff / 2,
-            extent.xMaximum(),
-            extent.yMaximum() + height_diff / 2
-        )
+    
+    # Apply scale factor (scale around center)
+    new_width = new_width / scale_factor
+    new_height = new_height / scale_factor
+    
+    # Create the final extent centered on the original center point
+    new_extent = QgsRectangle(
+        center_x - new_width / 2,
+        center_y - new_height / 2,
+        center_x + new_width / 2,
+        center_y + new_height / 2
+    )
     
     return new_extent
 
@@ -265,15 +293,20 @@ for floor_key, floor_val in FLOORS.items():
         map_width_mm = map_item.sizeWithUnits().width()
         map_height_mm = map_item.sizeWithUnits().height()
         
+        # Get scale factor and center offset for this floor
+        scale_factor = FLOOR_SCALE_FACTORS.get(floor_key, 1.0)
+        center_offset = FLOOR_CENTER_OFFSETS.get(floor_key, (0, 0))
+        
         # Adjust extent to match the map frame's aspect ratio
-        adjusted_ext = adjust_extent_to_aspect_ratio(ext, map_width_mm, map_height_mm)
+        adjusted_ext = adjust_extent_to_aspect_ratio(ext, map_width_mm, map_height_mm, scale_factor, center_offset)
         map_item.setExtent(adjusted_ext)
         print(
             f"   original extent: xmin={ext.xMinimum():.2f}, "
             f"ymin={ext.yMinimum():.2f}, xmax={ext.xMaximum():.2f}, ymax={ext.yMaximum():.2f}"
         )
+        offset_str = f", offset={center_offset}" if center_offset != (0, 0) else ""
         print(
-            f"   adjusted extent: xmin={adjusted_ext.xMinimum():.2f}, "
+            f"   adjusted extent (scale={scale_factor}{offset_str}): xmin={adjusted_ext.xMinimum():.2f}, "
             f"ymin={adjusted_ext.yMinimum():.2f}, xmax={adjusted_ext.xMaximum():.2f}, ymax={adjusted_ext.yMaximum():.2f}"
         )
     else:
