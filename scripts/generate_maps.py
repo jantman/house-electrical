@@ -280,7 +280,7 @@ def make_legend_layout():
 
     # Title
     title = QgsLayoutItemLabel(layout)
-    title.setText("Electrical Plan — Legend")
+    title.setText("5737 Electrical Plan — Legend")
     title.setFont(QFont("Noto Sans", 20))
     title.adjustSizeToText()
     title.attemptMove(QgsLayoutPoint(width_mm/2 - 70, 8, QgsUnitTypes.LayoutMillimeters))
@@ -330,7 +330,7 @@ for floor_key, floor_val in FLOORS.items():
     set_only_group_visible(floor_key)
     apply_floor_filters(floor_val)
 
-    layout, map_item = make_layout(f"Electrical Plan — {floor_key}")
+    layout, map_item = make_layout(f"5737 Electrical Plan — {floor_key}")
 
     ext = raster_extent_for_floor_key(floor_key)
     if ext and not ext.isEmpty():
