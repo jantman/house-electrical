@@ -3,6 +3,9 @@
 "name": "switches",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
 "features": [
-{ "type": "Feature", "properties": { "id": "GarageLightsSwitch", "type": "switch", "subtype": "spst", "floor": "1", "circuit_id": "24", "notes": "Garage light switch" }, "geometry": { "type": "Point", "coordinates": [ 17170.782959905660391, 4459.338797169808458 ] } }
+{ "type": "Feature", "properties": { "id": "GarageLightsSwitch", "type": "switch", "subtype": "spst", "floor": "1", "circuit_id": "24", "notes": "Garage light switch" }, "geometry": { "type": "Point", "coordinates": [ 17170.782959905660391, 4459.338797169808458 ] } },
+{ "type": "Feature", "properties": { "id": null, "type": "switch", "subtype": "spst", "floor": "2", "circuit_id": "21", "notes": "Switch for closet light" }, "geometry": { "type": "Point", "coordinates": [ 27198.934773669589049, 12419.156450809128728 ] } },
+{ "type": "Feature", "properties": { "id": null, "type": "switch", "subtype": "spst", "floor": "2", "circuit_id": "21", "notes": "switch for upstairs front BR light" }, "geometry": { "type": "Point", "coordinates": [ 27820.822037820533296, 10690.67567250724278 ] } },
+{ "type": "Feature", "properties": { "id": null, "type": "switch", "subtype": "duplex", "floor": "2", "circuit_id": "21", "notes": "switch for upstairs back BR closet light" }, "geometry": { "type": "Point", "coordinates": [ 28954.851754801664356, 11504.616356469505263 ] } }
 ]
 }
