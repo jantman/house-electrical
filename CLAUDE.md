@@ -22,11 +22,15 @@ This is a QGIS-based electrical wiring documentation project for a house. It use
 - **floor**: Values are `basement`, `1`, `2`
 - **type/subtype**: Categorize fixtures (outlet/light/camera/junction/rj45) and their variants
 
-### Scripts (PyQGIS - run in QGIS Python Console)
+### Scripts
+**PyQGIS (run in QGIS Python Console):**
 - `scripts/apply_static_styles.py` - Applies symbology and colors; defines `focus_circuit()` and `clear_circuit_focus()` helper functions
 - `scripts/generate_maps.py` - Exports per-floor PDFs to `exports/`
 - `scripts/ensure_fields.py` - Adds missing fields to layers
 - `scripts/recreate_layers.py` - Recreates vector layers from GeoJSON
+
+**Standalone Python:**
+- `scripts/generate_circuit_csv.py` - Generates CSV of circuits with panel labels from fixtures data
 
 ### Icons
 SVG electrical symbols are stored in `DOTqgis/icons/`. Path configured via `ICON_DIR` in `apply_static_styles.py`.
@@ -39,6 +43,12 @@ In QGIS Python Console:
 exec(compile(Path('/home/jantman/GIT/house-electrical/scripts/generate_maps.py').read_text(), 'generate_maps.py', 'exec'))
 ```
 Outputs to `exports/floor_basement.pdf`, `exports/floor_1.pdf`, `exports/floor_2.pdf`, `exports/legend.pdf`
+
+### Generate circuit listing CSV
+```bash
+python scripts/generate_circuit_csv.py
+```
+Outputs `exports/circuits.csv` with circuit_id and associated panel_labels (outlets and lights only).
 
 ### Apply/reapply styles
 In QGIS Python Console, run `scripts/apply_static_styles.py`

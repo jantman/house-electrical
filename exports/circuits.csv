@@ -1,0 +1,39 @@
+circuit_id,panel_labels
+1/3,Dryer
+2/4,Oven
+6/8,Outside AC units
+9A,"Kitchen cabinet light right of sink, Kitchen counter GFCI right of sink, Kitchen fridge"
+9B,Whole House Fan
+10,"Ckt 10 junction box high up on wall, Living room outlets, Living room projector outlet in ceiling"
+11A,Washer
+11B,Dishwasher
+12,"Kitchen cabinet lights left of sink, Kitchen counter outlets left of sink"
+13,"Metal shop outlet near breaker panel, Woodshop back wall outlet, Woodshop ceiling outlet, Woodshop ceiling outlet near front wall"
+14,Office outlets
+15A,Kitchen cooktop
+15B,Breakfast room outlets
+16A,"Dining room light, Dining room outlets"
+16B,"Basement door room ceiling outlet, Basement furnace room wall outlet, Exterior outlet near HVAC units, Garden outlet, Outlet over basement sink, Outlet under and left of basement sink"
+17,"Outlet kitchen counter next to fridge, Under-cabinet light kitchen counter next to fridge"
+18,Microwave
+19A,"Basement stereo amp outlet, Exterior outlet near front door, Outlet on woodshop wall near metal rack"
+19B,"Outlets below breaker panel, both sides"
+21,"2nd floor stairs light, Downstairs MBR hall light, Laundry closet light, Laundry closet outlet, Stairs light, Upstairs MBR closet light, Upstairs MBR closet outlet, Upstairs MBR light, Upstairs MBR outlet, Upstairs back BR closet light, Upstairs back BR light, Upstairs back BR outlet next to closet, Upstairs front BR closet light, Upstairs front BR light, Upstairs front BR outlet, Upstairs hall outlet, upstairs MBR attic fan outlet, upstairs MBR attic light, upstairs MBR attic outlet"
+22,"22, Coach lights outside front door, Doorbell transformer, Downstairs MBR bath main light, Downstairs MBR bath shower fan, Downstairs MBR bath sink outlet, Downstairs MBR bath toilet fan, Downstairs MBR bath toilet light, Downstairs MBR closet light, Downstairs MBR light, Downstairs MBR outlets, Downstairs hall bath fan, Downstairs hall bath light, Downstairs hall lights, Downstairs hall outlet"
+23,Basement furnace
+24,"Breakfast room light, Breakfast room outdoor flood light, Cooktop vent hood, Downstairs hall bath outlet, Garage coach lights, Garage lights, Kitchen light, Kitchen pantry hall light, Laundry door exterior light, Laundry room light, Laundry wall outlet, Light outside patio door, Light over kitchen sink, Living room light, Office light, Outside outlet next to porch door"
+25A,Basement emergency lights
+25B,"Basement bottom of stairs light, Basement light, Basement lights, Basement stairs light, Door room ceiling outlet for lights, Junction for Shelly EM power, Outlets on wall adjacent to basement stairs, Storage racks ceiling outlet for lights"
+26,"Upstairs MBR bath closet light, Upstairs MBR bath fan, Upstairs MBR bath outlet, Upstairs MBR bath tub light, Upstairs MBR bath vanity light, Upstairs MBR outlet on wall adj to bathroom, Upstairs back BR attic side wall outlet, Upstairs back BR bathroom side wall outlet, Upstairs back BR outside wall outlet, Upstairs hall bath fan, Upstairs hall bath light, Upstairs hall bath outlet"
+27,Garage door opener
+28A,"Flood light outside basement door, eShop workbench outlet"
+28B,Metal shop back wall outlets
+29,Downstairs MBR recessed TV outlet
+29A,"29A junction box, Basement HVAC condensate outlet, Basement HVAC room GFCI outlet for Atmo, Door room pegboard wall outlets, Downstairs MBR bath vanity end outlet, Metal shop shop vac outlet, Outlet behind hot water heater"
+29B/31A,50A outlet below panel
+31B,"Server/alarm outlet under basement stairs, light under basement stairs"
+G2/G4,Welder
+G5/7,Garage Heater
+G6,Air Compressor
+G7,Garage Outlets near Panel
+G8,

@@ -84,7 +84,21 @@ Two options:
 - **Themes:** Save Map Themes per floor so you can switch views with one click (View → Panels → Map Themes).
 - **Backups:** The GeoJSON in `data/` is your source of truth. Consider versioning with git.
 
-## 5) Color Legend (static)
+## 5) Generate Circuit Listing CSV
+
+To generate a CSV listing of all circuits with their panel labels:
+
+```bash
+python scripts/generate_circuit_csv.py
+```
+
+This outputs `exports/circuits.csv` with columns:
+- `circuit_id`: The circuit identifier
+- `panel_labels`: Comma-separated list of unique panel labels for devices on that circuit
+
+Only electrical device types (`outlet`, `light`, `junction`, `fan`) are included. You can optionally specify a different output path as an argument.
+
+## 6) Color Legend (static)
 - Outlets/receptacles: **Red**
 - Lights: **Yellow**
 - Data & Cameras: **Blue**
